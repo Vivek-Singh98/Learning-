@@ -1,5 +1,3 @@
-Haan 👍 Isko bhi **raw Markdown** mein de raha hoon. Isse copy karke `03-langchain-streaming-and-batch.md` file mein paste kar dena.
-
 ````
 # LangChain: Streaming and Batch
 
