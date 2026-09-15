@@ -1,26 +1,35 @@
-LangChain: Streaming and Batch
-1. Streaming
-What is Streaming?
+Haan 👍 Isko bhi **raw Markdown** mein de raha hoon. Isse copy karke `03-langchain-streaming-and-batch.md` file mein paste kar dena.
 
-Streaming in LangChain allows us to receive the model's output incrementally instead of waiting for the complete response.
+````
+# LangChain: Streaming and Batch
 
-The output can arrive chunk-by-chunk (often token-by-token or in small pieces), allowing us to display the response while the model is still generating it.
+## 1. Streaming
 
-Simple idea
+### What is Streaming?
 
-Without streaming:
+Streaming in LangChain allows us to receive the model's output **incrementally** instead of waiting for the complete response.
 
-User → Model → Wait → Complete response
+The output arrives **chunk-by-chunk**, allowing us to display the response while the model is still generating it.
 
+### Simple Idea
 
-With streaming:
+**Without Streaming:**
 
-User → Model → Chunk 1 → Chunk 2 → Chunk 3 → ... → Complete response
+```text
+User → Model → Wait → Complete Response
+````
 
+ **With Streaming:**
 
-So, streaming is useful when we want to give the user immediate feedback instead of making them wait for the entire response.
+```
+User → Model → Chunk 1 → Chunk 2 → Chunk 3 → ... → Complete Response
+```
 
-Example
+ > **Streaming = Get the response piece-by-piece.**
+
+ ### Example
+
+```
 from langchain_openai import ChatOpenAI
 
 model = ChatOpenAI(
@@ -29,65 +38,65 @@ model = ChatOpenAI(
 
 for chunk in model.stream("Write a 200-word paragraph about AI"):
     print(chunk.content, end="", flush=True)
+```
 
-Important points
+ ### Important Points
 
-model.stream() starts a streaming request.
+ - `model.stream()` starts a streaming request.
+- The complete response is not returned at once.
+- We receive multiple chunks.
+- `chunk.content` contains the text from the current chunk.
+- `end=""` prevents a new line after every chunk.
+- `flush=True` makes the output appear immediately.
 
-The model does not return the entire response at once.
+ ### Why Use Streaming?
 
-We receive multiple chunks.
+ Streaming is useful for:
 
-chunk.content contains the text from the current chunk.
+ - Chat applications
+- AI assistants
+- Long responses
+- Agent applications
+- Improving perceived response speed
+- Showing users that the model is actively generating
 
-end="" prevents Python from adding a new line after every chunk.
+ ### Remember
 
-flush=True makes the output appear immediately in the terminal.
+ > **Streaming = Response piece-by-piece**
 
-Why use Streaming?
+---
 
-Streaming is useful for:
+ ## 2\. Batch
 
-Chat applications
+ ### What is Batch?
 
-AI assistants
+ Batch in LangChain is used when we have **multiple independent inputs** that we want to send to the model.
 
-Long responses
+ Instead of calling the model separately:
 
-Agent applications
-
-Improving perceived response speed
-
-Showing users that the model is actively generating a response
-
-Remember
-
-Streaming = Get the response piece-by-piece.
-
-2. Batch
-What is Batch?
-
-Batch in LangChain is used when we have multiple independent inputs that we want to send to the model.
-
-Instead of calling the model separately for every input:
-
+```
 model.invoke("question 1")
 model.invoke("question 2")
 model.invoke("question 3")
+```
 
+ We can use:
 
-we can use:
-
+```
 model.batch([
     "question 1",
     "question 2",
     "question 3"
 ])
+```
 
+ LangChain can process these independent inputs concurrently.
 
-LangChain can process these independent inputs concurrently, which can make processing multiple requests more efficient.
+ > **Batch = Process multiple independent inputs.**
 
-Example
+ ### Example
+
+```
 responses = model.batch(
     [
         "Why do parrots talk?",
@@ -101,96 +110,118 @@ responses = model.batch(
 
 for response in responses:
     print(response.content)
+```
 
-Understanding max_concurrency
+---
+
+ ## 3\. Understanding `max_concurrency`
+
+```
 config={
     "max_concurrency": 5
 }
+```
 
+ `max_concurrency` controls how many batch tasks can run concurrently.
 
-max_concurrency controls how many batch tasks can be executed concurrently.
+ ### Example
 
-For example:
-
+```
 max_concurrency = 1
-    ↓
-Process one task at a time
+        ↓
+One task at a time
 
 max_concurrency = 5
-    ↓
+        ↓
 Up to 5 tasks can run concurrently
+```
 
+ > `max_concurrency` is a limit, not a guarantee that exactly 5 tasks will always run at the same time.
 
-It is a concurrency limit, not a guarantee that exactly 5 requests will always run at the same time.
+ ### Important Points
 
-Important points
+ - `model.batch()` accepts multiple inputs.
+- Each input is treated as an independent request.
+- It returns a list of responses.
+- Responses correspond to the inputs in the same order.
+- `max_concurrency` controls concurrent execution.
 
-model.batch() accepts a list of inputs.
+ ### Example Input
 
-Each input is treated as an independent request.
-
-It returns a list of responses.
-
-The response at each position corresponds to the input at the same position.
-
-max_concurrency can be used to control concurrent execution.
-
-Example
-
-Input:
-
+```
 [
     "Why do parrots talk?",
     "Why do airplanes fly?",
     "What is AI?"
 ]
+```
 
+ ### Example Output
 
-Output:
-
+```
 Response to: Why do parrots talk?
 Response to: Why do airplanes fly?
 Response to: What is AI?
+```
 
-Remember
+---
 
-Batch = Send/process multiple independent inputs together.
+ ## 4\. Streaming vs Batch
 
-3. Streaming vs Batch
-Feature	Streaming	Batch
-Main purpose	Receive output incrementally	Process multiple inputs
-Method	stream()	batch()
-Input	Usually one input	Multiple inputs
-Output	Chunks	List of responses
-Useful for	Chat/UI responses	Multiple independent requests
-Key idea	Response arrives piece-by-piece	Multiple requests are processed
-4. Quick Memory Trick
-invoke()
+ | Feature | Streaming | Batch |
+| --- | --- | --- |
+| Main Purpose | Receive output incrementally | Process multiple inputs |
+| Method | `stream()` | `batch()` |
+| Input | Usually one input | Multiple inputs |
+| Output | Chunks | List of responses |
+| Useful For | Chat / UI responses | Multiple independent requests |
+| Key Idea | Response arrives piece-by-piece | Multiple requests are processed |
+
+---
+
+ ## 5\. Quick Memory Trick
+
+ ### `invoke()`
+
+```
 model.invoke(input)
+```
 
+ **One input → One complete response**
 
-One input → One complete response
+ ### `stream()`
 
-stream()
+```
 model.stream(input)
+```
 
+ **One input → Many chunks**
 
-One input → Many chunks
+ ### `batch()`
 
-batch()
-model.batch([input1, input2, input3])
+```
+model.batch([
+    input1,
+    input2,
+    input3
+])
+```
 
+ **Many inputs → Many complete responses**
 
-Many inputs → Many complete responses
+---
 
-5. Easy Way to Remember
+ ## 6\. Easy Way to Remember
+
+```
 invoke()
     ↓
 ONE input
     ↓
 ONE complete response
+```
 
-
+```
 stream()
     ↓
 ONE input
@@ -198,18 +229,26 @@ ONE input
 MANY chunks
     ↓
 ONE complete response
+```
 
-
+```
 batch()
     ↓
 MANY inputs
     ↓
 MANY responses
+```
 
-Final takeaway
+---
 
-Invoke = Give me the complete answer.
+ ## 7\. Final Takeaway
 
-Stream = Give me the answer as it is generated.
+ > **Invoke** = Give me the complete answer.
 
-Batch = Process multiple independent inputs.
+ > **Stream** = Give me the answer as it is generated.
+
+ > **Batch** = Process multiple independent inputs.
+
+```
+
+```
