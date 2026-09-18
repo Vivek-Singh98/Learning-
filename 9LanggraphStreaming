@@ -1,0 +1,100 @@
+# LangGraph — Streaming
+
+## Definition
+
+Instead of calling `graph.invoke()` and waiting for the **final** result, LangGraph lets you **stream** intermediate outputs as the graph executes — useful for showing a live "typing" effect or watching each node/step run in real time.
+
+- `graph.stream(...)` → synchronous streaming (a generator you loop over)
+- `graph.astream(...)` → asynchronous streaming (used with `async`/`await`, for async apps like FastAPI)
+
+### Stream modes
+
+| Mode | Behaviour |
+|---|---|
+| `"values"` | Emits the **full state** after each step — all previous messages are included every time (accumulated) |
+| `"updates"` | Emits only the **incremental update** each node produced (just what changed in that step, not the whole history) |
+
+### Key building blocks
+
+| Concept | What it means |
+|---|---|
+| `.stream(input, config, stream_mode=...)` | Runs the graph and yields output chunk-by-chunk instead of returning once |
+| `.astream(...)` | Async version, for use in async functions/servers |
+| `stream_mode="values"` | Good when you want the full running conversation state at each step |
+| `stream_mode="updates"` | Good when you only care what each node just produced (lighter payload) |
+
+### Why it matters
+Streaming improves perceived responsiveness (like ChatGPT's typing effect) and lets you observe/log what each node in the graph is doing step-by-step, rather than treating the graph as a black box that only returns a final answer.
+
+---
+
+## Code (minimal)
+
+```python
+from langgraph.checkpoint.memory import MemorySaver
+
+memory = MemorySaver()
+graph = graph_builder.compile(checkpointer=memory)
+config = {"configurable": {"thread_id": "1"}}
+
+# --- values mode: full accumulated state after each step ---
+for event in graph.stream({"messages": ["Hi, my name is Vivek"]}, config, stream_mode="values"):
+    event["messages"][-1].pretty_print()
+
+# --- updates mode: only what changed in that step ---
+for event in graph.stream({"messages": ["What's my name?"]}, config, stream_mode="updates"):
+    print(event)
+
+# --- async version ---
+# async for event in graph.astream({"messages": ["Hi"]}, config, stream_mode="values"):
+#     print(event)
+```
+
+---
+
+## Likely interview questions
+## `.invoke()` vs `.stream()`
+
+ - **`.invoke()`** → Runs the graph once and returns the **final result**.
+- **`.stream()`** → Runs the graph and **yields results step-by-step** as nodes execute.
+
+ ## `stream_mode="values"` vs `"updates"`
+
+ - **`values`** → Returns the **complete state** after each step.
+- **`updates`** → Returns only the **state changes/updates** made by each node.
+
+ Think:
+
+ - `values` = “What is the state now?”
+- `updates` = “What changed?”
+
+ ## `.astream()` vs `.stream()`
+
+ - **`.stream()`** → For **synchronous** code.
+- **`.astream()`** → For **asynchronous (`async`)** code.
+
+ Use `.astream()` when your application already uses `async/await`, such as async APIs or web servers.
+
+ ## Streaming \+ `checkpointer` \+ `thread_id`
+
+ Streaming still works with checkpoints.
+
+ - `thread_id` identifies **which conversation/state** to use.
+- The checkpointer **saves the state** as the graph progresses.
+- `.stream()` then yields the intermediate results while the graph runs.
+
+ So:
+
+```
+thread_id
+    ↓
+Load previous state
+    ↓
+Run graph
+    ↓
+Stream updates
+    ↓
+Save checkpoint
+```
+
+ This means you can **stream a response, pause/resume a workflow, and keep the conversation state** using the same `thread_id`.
